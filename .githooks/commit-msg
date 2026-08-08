@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Enforces Conventional Commits on the commit message header.
+# Spec: https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13
+#
+# Enable with: git config core.hooksPath .githooks
+
+commit_msg_file="$1"
+header="$(head -n1 "$commit_msg_file")"
+
+# Let git-generated merge/revert messages through untouched.
+if [[ "$header" =~ ^(Merge|Revert)\  ]]; then
+  exit 0
+fi
+
+types="feat|fix|refactor|perf|style|test|docs|build|ops|chore"
+pattern="^(${types})(\([a-zA-Z0-9_.-]+\))?!?: [a-z0-9].*[^.]$"
+
+if ! [[ "$header" =~ $pattern ]]; then
+  cat >&2 <<EOF
+Commit message does not follow Conventional Commits format:
+
+  <type>(<optional scope>)<!>: <description>
+
+Types: feat fix refactor perf style test docs build ops chore
+Description: imperative present tense, lowercase first letter, no trailing period.
+Breaking change: append '!' before the colon, e.g. feat(api)!: remove status endpoint
+
+Got:
+  $header
+EOF
+  exit 1
+fi

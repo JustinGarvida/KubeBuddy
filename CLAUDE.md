@@ -33,6 +33,25 @@ docs/       # Design and architecture documentation
 - **Postgres writes don't depend on RabbitMQ.** Go writes raw metrics to Postgres directly during polling, independent of whether the RabbitMQ publish succeeds — core recording survives queue outages.
 - **RabbitMQ's `anomalies.detected` exchange has no built-in alert consumer yet.** Only Go consumes it today (to persist anomalies for the dashboard). The schema is designed so a future alerting consumer (Slack/email/webhook) could bind its own queue without changing the publisher.
 
+## Commit Conventions
+
+This repo follows [Conventional Commits](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13):
+
+```
+<type>(<optional scope>)<!>: <description>
+
+<optional body>
+
+<optional footer>
+```
+
+- **Types**: `feat`, `fix`, `refactor`, `perf`, `style`, `test`, `docs`, `build`, `ops`, `chore`
+- **Description**: imperative present tense ("add" not "added"), lowercase first letter, no trailing period.
+- **Breaking changes**: append `!` before the colon (e.g. `feat(api)!: remove status endpoint`) and explain in a `BREAKING CHANGE:` footer.
+- **Scope**: optional, project-specific context (e.g. `feat(go-agent): ...`). Don't use issue IDs as scope.
+
+A `commit-msg` hook in `.githooks/commit-msg` enforces the header format. It isn't active by default — run `git config core.hooksPath .githooks` once per clone to enable it.
+
 ## Reference
 
 Full architecture, component responsibilities, error handling, testing strategy, and the suggested build order live in [`docs/architecture.md`](docs/architecture.md) — treat it as the source of truth when implementing any component.

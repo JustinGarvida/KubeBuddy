@@ -28,3 +28,7 @@ python/     # Python anomaly detection service
 frontend/   # React + TypeScript dashboard
 docs/       # Design and architecture documentation
 ```
+
+## Contributing
+
+Commits follow [Conventional Commits](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13) — see [`CLAUDE.md`](CLAUDE.md#commit-conventions) for the format and types. Run `git config core.hooksPath .githooks` once per clone to enable the local commit-message check.
