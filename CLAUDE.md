@@ -52,6 +52,22 @@ This repo follows [Conventional Commits](https://gist.github.com/qoomon/5dfcdf8e
 
 A `commit-msg` hook in `.githooks/commit-msg` enforces the header format. It isn't active by default — run `git config core.hooksPath .githooks` once per clone to enable it.
 
+## PR Conventions
+
+- **Title**: same format as a commit header — `<type>(<optional scope>)<!>: <description>` — using the same types, imperative present tense, and lowercase-first-letter rules as [Commit Conventions](#commit-conventions). If a branch's commits span multiple types, pick the type of the overall change (e.g. a refactor with an accompanying test counts as `refactor`, not `test`).
+- **Body**: always use this template —
+
+  ```markdown
+  ## Summary
+  <1-3 bullet points explaining *why*, not just what>
+
+  ## Test plan
+  <bulleted checklist of how this was/should be verified>
+  ```
+
+- **Breaking changes**: note them under a `## Breaking changes` section between Summary and Test plan, same content as the commit's `BREAKING CHANGE:` footer.
+- Keep the title under 70 characters; put detail in the body, not the title.
+
 ## Reference
 
 Full architecture, component responsibilities, error handling, testing strategy, and the suggested build order live in [`docs/architecture.md`](docs/architecture.md) — treat it as the source of truth when implementing any component.
