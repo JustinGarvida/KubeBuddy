@@ -4,7 +4,7 @@ Guidance for Claude Code sessions working in this repository.
 
 ## Project Summary
 
-KubeBuddy monitors Kubernetes pod CPU/memory usage, detects anomalies with a statistical model, and displays them in a React/TypeScript dashboard. It's an experimental, single-cluster project intentionally combining Go, Python, RabbitMQ, and React/TS.
+PodSentinel monitors Kubernetes pod CPU/memory usage, detects anomalies with a statistical model, and displays them in a React/TypeScript dashboard. It's an experimental, single-cluster project intentionally combining Go, Python, RabbitMQ, and React/TS.
 
 **Current stage**: design/docs only. No application code exists yet — see the suggested build order in `docs/architecture.md` before starting implementation work.
 
