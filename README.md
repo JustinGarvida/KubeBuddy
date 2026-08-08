@@ -1,6 +1,6 @@
-# KubeBuddy
+# PodSentinel
 
-KubeBuddy monitors Kubernetes pod CPU and memory usage, detects anomalies, and surfaces them in a live dashboard.
+PodSentinel monitors Kubernetes pod CPU and memory usage, detects anomalies, and surfaces them in a live dashboard.
 
 ## Tech Stack
 

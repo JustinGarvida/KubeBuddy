@@ -1,8 +1,8 @@
-# KubeBuddy Architecture
+# PodSentinel Architecture
 
 ## Overview
 
-KubeBuddy monitors CPU and memory usage for Kubernetes pods, detects anomalies using a statistical model, and surfaces them through a live dashboard. It's an experiment in combining Go, Python, RabbitMQ, and React/TypeScript into a single event-driven system.
+PodSentinel monitors CPU and memory usage for Kubernetes pods, detects anomalies using a statistical model, and surfaces them through a live dashboard. It's an experiment in combining Go, Python, RabbitMQ, and React/TypeScript into a single event-driven system.
 
 At a high level:
 
