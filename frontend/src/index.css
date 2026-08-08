@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-600.css";
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+
+@theme {
+  /* Monitor housing + surfaces */
+  --color-scope-bg: #0f1a1c;
+  --color-panel: #16262a;
+  --color-panel-raised: #1c2e32;
+  --color-grid: #223639;
+
+  /* Vital-sign trace colors */
+  --color-trace: #f2a93b;
+  --color-trace-dim: #8a6428;
+  --color-alert: #ff6452;
+  --color-stable: #59b896;
+
+  /* Text */
+  --color-ink: #ede9e2;
+  --color-ink-dim: #93a6a4;
+  --color-ink-faint: #5c7371;
+
+  --font-display: "IBM Plex Mono", ui-monospace, monospace;
+  --font-body: "IBM Plex Sans", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-scope-bg);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+
+  ::selection {
+    background-color: var(--color-trace);
+    color: var(--color-scope-bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-trace);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes trace-sweep {
+  to {
+    stroke-dashoffset: -960;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
