@@ -1,6 +1,6 @@
 services:
   rabbitmq:
-    image: rabbitmq:management
+    image: rabbitmq:4.3.4-management
     container_name: podsentinel-rabbitmq
     env_file: .env
     ports:
@@ -10,7 +10,7 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
 
   timescaledb:
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:2.29.1-pg16
     container_name: podsentinel-timescaledb
     env_file: .env
     ports:
