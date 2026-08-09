@@ -81,7 +81,7 @@ The dashboard talks only to the Go Agent's REST API (polling/refresh interval to
 ## Testing & Verification Strategy
 
 - **Unit tests**: Go poller/publisher logic; Python detection math run against synthetic time series with known, injected anomalies.
-- **Integration test**: docker-compose spinning up RabbitMQ + Postgres + both services, using a mocked/fake metrics source, verifying an injected anomaly flows end-to-end and lands in Postgres.
+- **Integration test**: [docker-compose](infra/docker-compose.md) spinning up RabbitMQ + Postgres + both services, using a mocked/fake metrics source, verifying an injected anomaly flows end-to-end and lands in Postgres.
 - **Manual verification**: deploy to a local kind/minikube cluster with metrics-server installed, generate CPU load in a test pod (e.g. `stress-ng`), confirm the anomaly appears in the dashboard.
 
 ## Suggested Build Order
