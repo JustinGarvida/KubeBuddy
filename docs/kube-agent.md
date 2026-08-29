@@ -65,6 +65,17 @@ curl localhost:8080/api/v1/pods/default/example-pod
 curl localhost:8080/api/v1/pods/default/example-pod/anomalies
 ```
 
+## Integration test
+
+`go test -tags=integration ./internal/integration/...` exercises the
+full ingestion path against real infrastructure: it creates a
+namespace and pod in the `kind-podsentinel` cluster, runs poll cycles
+against `infra/docker-compose.yml`'s TimescaleDB until the pod shows up
+via `store.ListPods`, then cleans up. Requires both to already be
+running (see [`infra/kind.md`](infra/kind.md) and
+[`infra/docker-compose.md`](infra/docker-compose.md)) — it is not part
+of `go test ./...` and is not CI-portable as written.
+
 ## Endpoint reference
 
 | Method | Path                                          | Description                              |
