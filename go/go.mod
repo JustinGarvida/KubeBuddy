@@ -1,4 +1,4 @@
-module github.com/JustinGarvida/PodSentinel/go
+module podsentinel
 
 go 1.23.0
 

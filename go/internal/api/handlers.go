@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/JustinGarvida/PodSentinel/go/internal/models"
+	"podsentinel/internal/models"
 )
 
 // handlers holds the dependencies shared by the API's HTTP handlers.

@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JustinGarvida/PodSentinel/go/internal/api"
-	"github.com/JustinGarvida/PodSentinel/go/internal/config"
-	"github.com/JustinGarvida/PodSentinel/go/internal/logging"
+	"podsentinel/internal/api"
+	"podsentinel/internal/config"
+	"podsentinel/internal/logging"
 )
 
 func main() {
