@@ -4,9 +4,11 @@ Guide for configuring and running the Go agent (`go/`) locally. See
 [`architecture.md`](architecture.md#go-agent) for its role in the
 overall system.
 
-**Current stage**: scaffold only — REST API endpoints return
-placeholder data. Kubernetes Metrics API polling, Postgres writes, and
-RabbitMQ pub/sub are follow-up work (see "Next steps" below).
+**Current stage**: core ingestion path implemented — the agent polls
+Kubernetes (pod status/restarts + CPU/memory usage) on an interval and
+writes every sample to Postgres/TimescaleDB; REST API endpoints read
+real data. RabbitMQ pub/sub and Python anomaly detection are follow-up
+work (see "Next steps" below).
 
 ## Prerequisites
 
@@ -27,6 +29,9 @@ export the variables or use a tool like `direnv`).
 |-------------|---------|-----------------------------------------------|
 | `PORT`      | `8080`  | TCP port the REST API listens on               |
 | `LOG_LEVEL` | `info`  | Minimum log level: `debug`, `info`, `warn`, `error` |
+| `POSTGRES_DSN` | *(none — required)* | Postgres/TimescaleDB connection string |
+| `WATCH_NAMESPACES` | *(empty = all namespaces)* | Comma-separated namespace allow-list |
+| `POLL_INTERVAL` | `15s` | How often to poll the Kubernetes APIs |
 
 ## Run locally
 
@@ -69,8 +74,9 @@ curl localhost:8080/api/v1/pods/default/example-pod/anomalies
 | GET    | `/api/v1/pods/{namespace}/{pod}`                | Pod detail with recent metrics            |
 | GET    | `/api/v1/pods/{namespace}/{pod}/anomalies`      | Anomaly history for a pod                 |
 
-All responses are placeholder data today — response shapes are defined
-in `go/internal/models`.
+Response shapes are defined in `go/internal/models`; `/api/v1/pods/{namespace}/{pod}/anomalies`
+returns an empty array until the Python anomaly detector (a later
+build-order step) exists to write to it.
 
 ## Packages
 
@@ -79,12 +85,14 @@ in `go/internal/models`.
 - `internal/logging` — `log/slog` JSON logger setup.
 - `internal/api` — chi router, middleware, and HTTP handlers.
 - `internal/models` — API response types, mirroring the eventual `pod_metrics`/`anomalies` Postgres schema.
+- `internal/k8s` — builds Kubernetes clients (in-cluster or kubeconfig fallback), polls pods + metrics, and joins them per cycle.
+- `internal/store` — Postgres/TimescaleDB schema migrations and CRUD queries.
+- `internal/ingest` — orchestrates one poll-and-persist cycle, with per-pod fault isolation.
 
 ## Next steps
 
 Tracked as follow-up work, not yet implemented:
 
-- Kubernetes Metrics API polling via `client-go`.
-- Postgres/TimescaleDB connection and writes.
 - RabbitMQ publishing (`metrics.raw`) and consuming (`anomalies.detected`).
-- Deploying into the local KIND cluster (see [`infra/kind.md`](infra/kind.md)) once the agent has something real to poll and `metrics-server` is installed.
+- Python anomaly detection, which will populate the (currently empty) `anomalies` table.
+- Deploying the agent itself into the local KIND cluster (RBAC ServiceAccount/ClusterRole for pod + `metrics.k8s.io` access, a Deployment manifest) — today it runs on the host against KIND via kubeconfig.
