@@ -6,7 +6,7 @@ Guidance for Claude Code sessions working in this repository.
 
 PodSentinel monitors Kubernetes pod CPU/memory usage, detects anomalies with a statistical model, and displays them in a React/TypeScript dashboard. It's an experimental, single-cluster project intentionally combining Go, Python, RabbitMQ, and React/TS.
 
-**Current stage**: design/docs only. No application code exists yet — see the suggested build order in `docs/architecture.md` before starting implementation work.
+**Current stage**: Go agent's core ingestion path implemented (Kubernetes polling → Postgres/TimescaleDB → REST API); Python anomaly detection, RabbitMQ pub/sub, and the React dashboard are not yet built — see the suggested build order in `docs/architecture.md`.
 
 ## Tech Stack & Why
 
