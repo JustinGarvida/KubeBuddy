@@ -78,13 +78,16 @@ func (s *Store) InsertPodMetric(ctx context.Context, row PodMetricRow) error {
 	return nil
 }
 
-// ListPods returns the latest known row for every pod that has ever
-// reported a metric.
+// ListPods returns the latest known row for every pod that has reported
+// a metric within the last hour. Pods deleted from the cluster longer
+// ago than that age out of the list rather than lingering forever at
+// their last-known status.
 func (s *Store) ListPods(ctx context.Context) ([]PodSummary, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT DISTINCT ON (namespace, pod)
 			namespace, pod, status, restart_count, cpu, memory, time
 		FROM pod_metrics
+		WHERE time >= now() - interval '1 hour'
 		ORDER BY namespace, pod, time DESC
 	`)
 	if err != nil {

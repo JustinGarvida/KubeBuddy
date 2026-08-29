@@ -71,6 +71,34 @@ func TestStore_InsertPodMetricAndListPods(t *testing.T) {
 	}
 }
 
+func TestStore_ListPodsExcludesStaleRows(t *testing.T) {
+	s := newTestStore(t)
+	namespace := "store-test-list-pods-stale"
+	cleanNamespace(t, s, namespace)
+	t.Cleanup(func() { cleanNamespace(t, s, namespace) })
+
+	ctx := context.Background()
+	stale := time.Now().Add(-2 * time.Hour).UTC().Truncate(time.Millisecond)
+
+	if err := s.InsertPodMetric(ctx, PodMetricRow{
+		Time: stale, Namespace: namespace, Pod: "ghost-1",
+		CPU: 0.1, Memory: 1e8, Status: "Running", RestartCount: 0,
+	}); err != nil {
+		t.Fatalf("InsertPodMetric() error = %v", err)
+	}
+
+	pods, err := s.ListPods(ctx)
+	if err != nil {
+		t.Fatalf("ListPods() error = %v", err)
+	}
+
+	for _, p := range pods {
+		if p.Namespace == namespace && p.Pod == "ghost-1" {
+			t.Errorf("ListPods() included a row older than 1 hour: %+v, want it excluded", p)
+		}
+	}
+}
+
 func TestStore_GetPodMetricsReturnsTimeSeriesOldestFirst(t *testing.T) {
 	s := newTestStore(t)
 	namespace := "store-test-get-metrics"
