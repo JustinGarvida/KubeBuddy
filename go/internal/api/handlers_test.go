@@ -85,6 +85,58 @@ func TestListPods_ReturnsStoreData(t *testing.T) {
 	}
 }
 
+func TestGetPod_ReturnsLatestStatusAndAllMetricsOldestFirst(t *testing.T) {
+	router, st, dsn := newTestRouter(t)
+	namespace := "api-test-get-pod"
+	t.Cleanup(func() { cleanupNamespace(t, dsn, namespace) })
+
+	ctx := context.Background()
+	older := time.Now().Add(-2 * time.Minute).UTC().Truncate(time.Millisecond)
+	newer := time.Now().Add(-1 * time.Minute).UTC().Truncate(time.Millisecond)
+
+	if err := st.InsertPodMetric(ctx, store.PodMetricRow{
+		Time: older, Namespace: namespace, Pod: "web-1",
+		CPU: 0.1, Memory: 1e8, Status: "Pending", RestartCount: 0,
+	}); err != nil {
+		t.Fatalf("seeding older pod metric: %v", err)
+	}
+	if err := st.InsertPodMetric(ctx, store.PodMetricRow{
+		Time: newer, Namespace: namespace, Pod: "web-1",
+		CPU: 0.2, Memory: 2e8, Status: "Running", RestartCount: 3,
+	}); err != nil {
+		t.Fatalf("seeding newer pod metric: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/pods/"+namespace+"/web-1", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var detail models.PodDetail
+	if err := json.NewDecoder(rec.Body).Decode(&detail); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+
+	if detail.Namespace != namespace || detail.Name != "web-1" {
+		t.Errorf("identity = %s/%s, want %s/web-1", detail.Namespace, detail.Name, namespace)
+	}
+	if detail.Status != "Running" {
+		t.Errorf("Status = %q, want %q (the newest row's status)", detail.Status, "Running")
+	}
+	if detail.RestartCount != 3 {
+		t.Errorf("RestartCount = %d, want 3 (the newest row's restart count)", detail.RestartCount)
+	}
+	if len(detail.Metrics) != 2 {
+		t.Fatalf("len(Metrics) = %d, want 2", len(detail.Metrics))
+	}
+	if !detail.Metrics[0].Timestamp.Equal(older) || !detail.Metrics[1].Timestamp.Equal(newer) {
+		t.Errorf("Metrics not ordered oldest-first: %+v", detail.Metrics)
+	}
+}
+
 func TestListPodAnomalies_ReturnsEmptyArrayNotNull(t *testing.T) {
 	router, _, _ := newTestRouter(t)
 

@@ -130,6 +130,37 @@ func TestStore_GetPodMetricsReturnsTimeSeriesOldestFirst(t *testing.T) {
 	}
 }
 
+func TestStore_GetPodMetricsExcludesRowsOlderThanOneHour(t *testing.T) {
+	s := newTestStore(t)
+	namespace := "store-test-get-metrics-window"
+	cleanNamespace(t, s, namespace)
+	t.Cleanup(func() { cleanNamespace(t, s, namespace) })
+
+	ctx := context.Background()
+	inWindow := time.Now().Add(-1 * time.Minute).UTC().Truncate(time.Millisecond)
+	stale := time.Now().Add(-90 * time.Minute).UTC().Truncate(time.Millisecond)
+
+	for _, row := range []PodMetricRow{
+		{Time: stale, Namespace: namespace, Pod: "api-1", CPU: 0.9, Memory: 9e8, Status: "Running"},
+		{Time: inWindow, Namespace: namespace, Pod: "api-1", CPU: 0.1, Memory: 1e8, Status: "Running"},
+	} {
+		if err := s.InsertPodMetric(ctx, row); err != nil {
+			t.Fatalf("InsertPodMetric() error = %v", err)
+		}
+	}
+
+	samples, err := s.GetPodMetrics(ctx, namespace, "api-1")
+	if err != nil {
+		t.Fatalf("GetPodMetrics() error = %v", err)
+	}
+	if len(samples) != 1 {
+		t.Fatalf("len(samples) = %d, want 1 (the row older than 1 hour should be excluded): %+v", len(samples), samples)
+	}
+	if !samples[0].Time.Equal(inWindow) {
+		t.Errorf("samples[0].Time = %v, want the in-window row %v", samples[0].Time, inWindow)
+	}
+}
+
 func TestStore_ListAnomaliesReturnsEmptySliceNotNil(t *testing.T) {
 	s := newTestStore(t)
 	namespace := "store-test-anomalies-empty"
