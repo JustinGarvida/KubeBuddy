@@ -14,13 +14,22 @@ import (
 
 // Clients bundles the two clientsets the poller needs.
 type Clients struct {
-	Core    kubernetes.Interface
+	// Core is the standard Kubernetes clientset, used to list pod
+	// identity/status/restarts.
+	Core kubernetes.Interface
+	// Metrics is the metrics.k8s.io clientset, used to list pod
+	// CPU/memory usage.
 	Metrics metricsv.Interface
 }
 
-// BuildClients constructs Clients using in-cluster credentials if
-// available, falling back to the local kubeconfig (KUBECONFIG, or
+// BuildClients constructs the agent's Kubernetes clientsets.
+//
+// Purpose: builds Clients using in-cluster credentials if available,
+// falling back to the local kubeconfig (KUBECONFIG, or
 // ~/.kube/config) for development against a cluster like KIND.
+// Params: none.
+// Returns: the constructed Clients, or an error if no credentials
+// could be found or either clientset failed to build.
 func BuildClients() (*Clients, error) {
 	restConfig, err := buildRestConfig(rest.InClusterConfig, loadKubeconfig)
 	if err != nil {
@@ -40,9 +49,17 @@ func BuildClients() (*Clients, error) {
 	return &Clients{Core: core, Metrics: metrics}, nil
 }
 
-// buildRestConfig tries inCluster first, falling back to
-// outOfCluster. Both loaders are injected so the fallback ordering can
-// be unit tested without real cluster credentials or a kubeconfig file.
+// buildRestConfig resolves a *rest.Config with a fallback ordering.
+//
+// Purpose: tries inCluster first, falling back to outOfCluster. Both
+// loaders are injected so the fallback ordering can be unit tested
+// without real cluster credentials or a kubeconfig file.
+// Params:
+//   - inCluster: loader tried first (e.g. rest.InClusterConfig).
+//   - outOfCluster: loader tried if inCluster fails (e.g. kubeconfig).
+//
+// Returns: the first loader's config that succeeds, or an error
+// combining both failures if both fail.
 func buildRestConfig(inCluster, outOfCluster func() (*rest.Config, error)) (*rest.Config, error) {
 	cfg, err := inCluster()
 	if err == nil {
@@ -57,8 +74,13 @@ func buildRestConfig(inCluster, outOfCluster func() (*rest.Config, error)) (*res
 	return cfg, nil
 }
 
-// loadKubeconfig loads a *rest.Config from KUBECONFIG, or ~/.kube/config
+// loadKubeconfig builds a *rest.Config from a local kubeconfig file.
+//
+// Purpose: loads a *rest.Config from KUBECONFIG, or ~/.kube/config
 // if KUBECONFIG is unset.
+// Params: none.
+// Returns: the loaded config, or an error if the home directory or
+// kubeconfig file couldn't be resolved/parsed.
 func loadKubeconfig() (*rest.Config, error) {
 	path := os.Getenv("KUBECONFIG")
 	if path == "" {

@@ -11,13 +11,28 @@ import (
 // Poller lists pods and their metrics from the Kubernetes API on each
 // Poll call, joining them into PodSamples.
 type Poller struct {
-	Clients    *Clients
-	Namespaces []string // empty means all namespaces
-	Logger     *slog.Logger
-	Now        func() time.Time
+	// Clients holds the core and metrics clientsets to poll.
+	Clients *Clients
+	// Namespaces restricts polling to these namespaces. Empty means
+	// watch all namespaces.
+	Namespaces []string
+	// Logger is the structured logger used for per-namespace list
+	// failures and the join's no-metrics-match debug line.
+	Logger *slog.Logger
+	// Now returns the current time; overridable in tests, defaults to
+	// time.Now via NewPoller.
+	Now func() time.Time
 }
 
 // NewPoller builds a Poller with real clientsets and time.Now.
+//
+// Purpose: constructs a Poller ready to run against a real cluster.
+// Params:
+//   - clients: the Kubernetes clientsets to poll.
+//   - namespaces: the namespace allow-list (empty means all).
+//   - logger: structured logger for the poller and its join step.
+//
+// Returns: a *Poller with Now set to time.Now.
 func NewPoller(clients *Clients, namespaces []string, logger *slog.Logger) *Poller {
 	return &Poller{
 		Clients:    clients,
@@ -27,9 +42,16 @@ func NewPoller(clients *Clients, namespaces []string, logger *slog.Logger) *Poll
 	}
 }
 
-// Poll lists pods and pod metrics across the configured namespaces and
-// returns the joined samples. A list failure for one namespace is
-// logged and skipped rather than failing the whole poll.
+// Poll runs one polling pass across the configured namespaces.
+//
+// Purpose: lists pods and pod metrics across the configured
+// namespaces and returns the joined samples. A list failure for one
+// namespace is logged and skipped rather than failing the whole poll.
+// Params:
+//   - ctx: propagated to every Kubernetes API list call.
+//
+// Returns: the joined PodSamples from every namespace that listed
+// successfully; nil if every namespace failed.
 func (p *Poller) Poll(ctx context.Context) []PodSample {
 	namespaces := p.Namespaces
 	if len(namespaces) == 0 {

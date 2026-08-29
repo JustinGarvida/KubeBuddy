@@ -12,11 +12,21 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// migrationsFS embeds the schema migration SQL files at build time, so
+// the agent binary needs no separate migrations directory at runtime.
+//
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Migrate applies all pending schema migrations. It's safe to call on
-// every agent startup — already-applied migrations are no-ops.
+// Migrate applies the store's schema migrations.
+//
+// Purpose: applies all pending schema migrations. It's safe to call
+// on every agent startup — already-applied migrations are no-ops.
+// Params:
+//   - dsn: the Postgres connection string to migrate.
+//
+// Returns: nil on success (including "nothing to do"), or an error if
+// the connection, driver, or a migration failed.
 func Migrate(dsn string) error {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

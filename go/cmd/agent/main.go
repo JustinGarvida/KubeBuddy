@@ -21,6 +21,14 @@ import (
 	"podsentinel/internal/store"
 )
 
+// main is the agent's entrypoint.
+//
+// Purpose: loads configuration, builds the Kubernetes and Postgres
+// dependencies, starts the background poll loop and the HTTP server,
+// and blocks until a SIGINT/SIGTERM triggers a graceful shutdown.
+// Params: none.
+// Returns: nothing; exits the process via os.Exit(1) on startup or
+// shutdown failure.
 func main() {
 	cfg := config.Load()
 	logger := logging.New(cfg.LogLevel)
@@ -72,8 +80,18 @@ func main() {
 	logger.Info("shutdown complete")
 }
 
-// runPollLoop runs one poll-and-persist cycle immediately, then again
-// on every tick of interval, until ctx is cancelled.
+// runPollLoop drives the agent's background ingestion loop.
+//
+// Purpose: runs one poll-and-persist cycle immediately, then again on
+// every tick of interval, until ctx is cancelled.
+// Params:
+//   - ctx: cancelled to stop the loop (e.g. on shutdown signal).
+//   - poller: source of joined Kubernetes pod/metric samples.
+//   - st: destination store for persisted samples.
+//   - logger: structured logger for cycle-level errors.
+//   - interval: time between poll cycles.
+//
+// Returns: nothing; blocks until ctx is done.
 func runPollLoop(ctx context.Context, poller *k8s.Poller, st *store.Store, logger *slog.Logger, interval time.Duration) {
 	ingest.Run(ctx, poller, st, logger)
 

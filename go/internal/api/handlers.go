@@ -13,20 +13,50 @@ import (
 
 // handlers holds the dependencies shared by the API's HTTP handlers.
 type handlers struct {
+	// logger is the structured logger used to report handler-level errors.
 	logger *slog.Logger
-	store  *store.Store
+	// store is the Postgres-backed source of pod/metric/anomaly data.
+	store *store.Store
 }
 
+// writeJSON encodes an HTTP JSON response.
+//
+// Purpose: writes body to w as JSON with the given HTTP status code.
+// Params:
+//   - w: the response writer to write the status and body to.
+//   - status: the HTTP status code to send.
+//   - body: the value to JSON-encode as the response body.
+//
+// Returns: nothing; encoding errors are ignored (the response is
+// already committed once the status is written).
 func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
 }
 
+// health handles GET /health.
+//
+// Purpose: a liveness check for the agent.
+// Params:
+//   - w: the response writer.
+//   - r: the incoming request (unused).
+//
+// Returns: nothing; always writes 200 OK.
 func (h *handlers) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// listPods handles GET /api/v1/pods.
+//
+// Purpose: returns the latest known summary for every pod that has
+// reported a metric within the last hour.
+// Params:
+//   - w: the response writer.
+//   - r: the incoming request (unused beyond its context).
+//
+// Returns: nothing; writes a JSON array of models.PodSummary, or a
+// 500 with a JSON error body if the store query fails.
 func (h *handlers) listPods(w http.ResponseWriter, r *http.Request) {
 	pods, err := h.store.ListPods(r.Context())
 	if err != nil {
@@ -47,6 +77,17 @@ func (h *handlers) listPods(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, summaries)
 }
 
+// getPod handles GET /api/v1/pods/{namespace}/{pod}.
+//
+// Purpose: returns the pod's identity/status (from its most recent
+// metric row) plus its last hour of CPU/memory samples, oldest first.
+// Params:
+//   - w: the response writer.
+//   - r: the incoming request; "namespace" and "pod" are read from
+//     its URL path parameters.
+//
+// Returns: nothing; writes a JSON models.PodDetail, or a 500 with a
+// JSON error body if the store query fails.
 func (h *handlers) getPod(w http.ResponseWriter, r *http.Request) {
 	namespace := chi.URLParam(r, "namespace")
 	pod := chi.URLParam(r, "pod")
@@ -77,6 +118,19 @@ func (h *handlers) getPod(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, detail)
 }
 
+// listPodAnomalies handles GET /api/v1/pods/{namespace}/{pod}/anomalies.
+//
+// Purpose: returns the pod's anomaly history, most recent first. It
+// returns an empty array (never null) when there are no anomalies —
+// including today, before the Python anomaly detector exists to write
+// any.
+// Params:
+//   - w: the response writer.
+//   - r: the incoming request; "namespace" and "pod" are read from
+//     its URL path parameters.
+//
+// Returns: nothing; writes a JSON array of models.Anomaly, or a 500
+// with a JSON error body if the store query fails.
 func (h *handlers) listPodAnomalies(w http.ResponseWriter, r *http.Request) {
 	namespace := chi.URLParam(r, "namespace")
 	pod := chi.URLParam(r, "pod")

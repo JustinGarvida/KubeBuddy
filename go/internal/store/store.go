@@ -10,44 +10,75 @@ import (
 
 // PodMetricRow is one poll cycle's persisted sample for a pod.
 type PodMetricRow struct {
-	Time         time.Time
-	Namespace    string
-	Pod          string
-	CPU          float64
-	Memory       float64
-	Status       string
+	// Time is when this sample was taken.
+	Time time.Time
+	// Namespace is the pod's namespace.
+	Namespace string
+	// Pod is the pod's name.
+	Pod string
+	// CPU is the pod's CPU usage in cores at Time.
+	CPU float64
+	// Memory is the pod's memory usage in bytes at Time.
+	Memory float64
+	// Status is the pod's phase at Time (e.g. "Running", "Pending").
+	Status string
+	// RestartCount is the pod's total container restart count at Time.
 	RestartCount int32
 }
 
 // PodSummary is the latest known row for one pod — the dashboard's pod
 // list view.
 type PodSummary struct {
-	Namespace    string
-	Pod          string
-	Status       string
+	// Namespace is the pod's namespace.
+	Namespace string
+	// Pod is the pod's name.
+	Pod string
+	// Status is the pod's most recently observed phase.
+	Status string
+	// RestartCount is the pod's most recently observed restart count.
 	RestartCount int32
-	CPU          float64
-	Memory       float64
-	Time         time.Time
+	// CPU is the pod's most recently observed CPU usage in cores.
+	CPU float64
+	// Memory is the pod's most recently observed memory usage in bytes.
+	Memory float64
+	// Time is when the most recent sample was taken.
+	Time time.Time
 }
 
 // Anomaly is a single detected deviation for a pod's metric.
 type Anomaly struct {
-	Time      time.Time
+	// Time is when the anomaly was detected.
+	Time time.Time
+	// Namespace is the affected pod's namespace.
 	Namespace string
-	Pod       string
-	Metric    string
-	Value     float64
-	Baseline  float64
-	Severity  string
+	// Pod is the affected pod's name.
+	Pod string
+	// Metric is the name of the deviating metric (e.g. "cpu").
+	Metric string
+	// Value is the observed value that triggered the anomaly.
+	Value float64
+	// Baseline is the pod's expected value the anomaly deviated from.
+	Baseline float64
+	// Severity is the anomaly's severity classification.
+	Severity string
 }
 
 // Store persists and queries pod metrics and anomalies in Postgres.
 type Store struct {
+	// pool is the underlying Postgres connection pool.
 	pool *pgxpool.Pool
 }
 
-// Open connects to Postgres and applies pending schema migrations.
+// Open connects to the store.
+//
+// Purpose: connects to Postgres and applies pending schema
+// migrations.
+// Params:
+//   - ctx: used for the connection pool's setup.
+//   - dsn: the Postgres connection string.
+//
+// Returns: a ready-to-use *Store, or an error if migration or
+// connection failed.
 func Open(ctx context.Context, dsn string) (*Store, error) {
 	if err := Migrate(dsn); err != nil {
 		return nil, fmt.Errorf("migrating schema: %w", err)
@@ -62,11 +93,22 @@ func Open(ctx context.Context, dsn string) (*Store, error) {
 }
 
 // Close releases the underlying connection pool.
+//
+// Purpose: shuts down the Postgres connection pool.
+// Params: none.
+// Returns: nothing.
 func (s *Store) Close() {
 	s.pool.Close()
 }
 
 // InsertPodMetric records one pod's sample for a poll cycle.
+//
+// Purpose: writes a single row to pod_metrics.
+// Params:
+//   - ctx: used for the insert.
+//   - row: the sample to persist.
+//
+// Returns: nil on success, or an error if the insert failed.
 func (s *Store) InsertPodMetric(ctx context.Context, row PodMetricRow) error {
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO pod_metrics (time, namespace, pod, cpu, memory, status, restart_count)
@@ -78,10 +120,17 @@ func (s *Store) InsertPodMetric(ctx context.Context, row PodMetricRow) error {
 	return nil
 }
 
-// ListPods returns the latest known row for every pod that has reported
-// a metric within the last hour. Pods deleted from the cluster longer
-// ago than that age out of the list rather than lingering forever at
-// their last-known status.
+// ListPods returns the current pod list for the dashboard.
+//
+// Purpose: returns the latest known row for every pod that has
+// reported a metric within the last hour. Pods deleted from the
+// cluster longer ago than that age out of the list rather than
+// lingering forever at their last-known status.
+// Params:
+//   - ctx: used for the query.
+//
+// Returns: one PodSummary per pod with a recent sample, or an error
+// if the query failed.
 func (s *Store) ListPods(ctx context.Context) ([]PodSummary, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT DISTINCT ON (namespace, pod)
@@ -106,8 +155,17 @@ func (s *Store) ListPods(ctx context.Context) ([]PodSummary, error) {
 	return summaries, rows.Err()
 }
 
-// GetPodMetrics returns a pod's metric samples from the last hour,
-// oldest first.
+// GetPodMetrics returns one pod's recent metric history.
+//
+// Purpose: returns a pod's metric samples from the last hour, oldest
+// first.
+// Params:
+//   - ctx: used for the query.
+//   - namespace: the pod's namespace.
+//   - pod: the pod's name.
+//
+// Returns: the pod's samples within the last hour, oldest first, or
+// an error if the query failed.
 func (s *Store) GetPodMetrics(ctx context.Context, namespace, pod string) ([]PodMetricRow, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT time, namespace, pod, cpu, memory, status, restart_count
@@ -131,9 +189,18 @@ func (s *Store) GetPodMetrics(ctx context.Context, namespace, pod string) ([]Pod
 	return samples, rows.Err()
 }
 
-// ListAnomalies returns a pod's anomaly history, most recent first. It
-// returns an empty slice (not an error) until the Python anomaly
-// detector exists and starts writing to the anomalies table.
+// ListAnomalies returns one pod's anomaly history.
+//
+// Purpose: returns a pod's anomaly history, most recent first. It
+// returns an empty slice (not an error, and not nil) until the Python
+// anomaly detector exists and starts writing to the anomalies table.
+// Params:
+//   - ctx: used for the query.
+//   - namespace: the pod's namespace.
+//   - pod: the pod's name.
+//
+// Returns: the pod's anomalies, most recent first (possibly empty),
+// or an error if the query failed.
 func (s *Store) ListAnomalies(ctx context.Context, namespace, pod string) ([]Anomaly, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT time, namespace, pod, metric, value, baseline, severity

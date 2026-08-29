@@ -11,23 +11,44 @@ import (
 // PodSample is one pod's joined identity, status, and resource usage
 // for a single poll cycle.
 type PodSample struct {
-	Namespace    string
-	Name         string
-	Status       string
+	// Namespace is the pod's namespace.
+	Namespace string
+	// Name is the pod's name.
+	Name string
+	// Status is the pod's phase (e.g. "Running", "Pending").
+	Status string
+	// RestartCount is the sum of restart counts across the pod's
+	// containers.
 	RestartCount int32
-	CPU          float64
-	Memory       float64
-	Timestamp    time.Time
+	// CPU is the pod's total CPU usage in cores, summed across
+	// containers. Zero if no matching metrics entry was found.
+	CPU float64
+	// Memory is the pod's total memory usage in bytes, summed across
+	// containers. Zero if no matching metrics entry was found.
+	Memory float64
+	// Timestamp is when this sample was taken: metrics-server's own
+	// scrape time when metrics were found, otherwise the poll's
+	// wall-clock time.
+	Timestamp time.Time
 }
 
-// joinPodsAndMetrics joins pod identity/status (from the core API) with
+// joinPodsAndMetrics joins pod identity/status with resource usage.
+//
+// Purpose: joins pod identity/status (from the core API) with
 // resource usage (from the metrics API) by namespace/name. A pod with
 // no matching metrics entry — e.g. Pending, CrashLoopBackOff, Evicted,
 // Failed, or a completed Job pod, all of which metrics-server never
-// reports on — still gets a PodSample with CPU/Memory zeroed, since its
-// status/restart count come from the core API and are always available
-// regardless of metrics. This is logged at Debug: it's an expected,
-// routine case, not a fault.
+// reports on — still gets a PodSample with CPU/Memory zeroed, since
+// its status/restart count come from the core API and are always
+// available regardless of metrics. This is logged at Debug: it's an
+// expected, routine case, not a fault.
+// Params:
+//   - pods: the core API's pod list for the polled namespace(s).
+//   - metrics: the metrics API's pod metrics list for the same scope.
+//   - now: the poll's wall-clock time, used as a fallback Timestamp.
+//   - logger: structured logger for the no-metrics-match debug line.
+//
+// Returns: one PodSample per pod in pods, in the same order.
 func joinPodsAndMetrics(pods []corev1.Pod, metrics []metricsv1beta1.PodMetrics, now time.Time, logger *slog.Logger) []PodSample {
 	metricsByKey := make(map[string]metricsv1beta1.PodMetrics, len(metrics))
 	for _, m := range metrics {

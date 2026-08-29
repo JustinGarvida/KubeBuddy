@@ -12,17 +12,29 @@ import (
 
 // Poller is the subset of *k8s.Poller that ingest depends on.
 type Poller interface {
+	// Poll returns one poll cycle's joined pod samples.
 	Poll(ctx context.Context) []k8s.PodSample
 }
 
 // Store is the subset of *store.Store that ingest depends on.
 type Store interface {
+	// InsertPodMetric persists a single pod sample.
 	InsertPodMetric(ctx context.Context, row store.PodMetricRow) error
 }
 
-// Run polls once and persists every sample it gets back. A failed
-// insert for one pod is logged and skipped, not fatal to the rest of
-// the cycle — matches the fault isolation used for polling itself.
+// Run executes one poll-and-persist cycle.
+//
+// Purpose: polls once and persists every sample it gets back. A
+// failed insert for one pod is logged and skipped, not fatal to the
+// rest of the cycle — matches the fault isolation used for polling
+// itself.
+// Params:
+//   - ctx: propagated to the poll call and every insert.
+//   - poller: source of pod samples for this cycle.
+//   - st: destination store for persisted samples.
+//   - logger: structured logger for per-pod insert failures.
+//
+// Returns: nothing; per-pod failures are logged, not returned.
 func Run(ctx context.Context, poller Poller, st Store, logger *slog.Logger) {
 	samples := poller.Poll(ctx)
 

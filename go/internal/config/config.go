@@ -26,8 +26,12 @@ type Config struct {
 	PollInterval time.Duration
 }
 
-// Load reads configuration from environment variables, falling back to
-// defaults for anything unset.
+// Load builds the agent's configuration.
+//
+// Purpose: reads configuration from environment variables, falling
+// back to defaults for anything unset.
+// Params: none.
+// Returns: a populated Config.
 func Load() Config {
 	return Config{
 		Port:            getEnv("PORT", "8080"),
@@ -38,6 +42,15 @@ func Load() Config {
 	}
 }
 
+// getEnv reads a single environment variable with a fallback.
+//
+// Purpose: returns the named environment variable's value, or
+// fallback if it's unset or empty.
+// Params:
+//   - key: the environment variable name.
+//   - fallback: the value to return if key is unset or empty.
+//
+// Returns: the environment variable's value, or fallback.
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -45,9 +58,15 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// parseNamespaces splits a comma-separated namespace list, trimming
+// parseNamespaces parses the WATCH_NAMESPACES value.
+//
+// Purpose: splits a comma-separated namespace list, trimming
 // whitespace and dropping empty entries. An empty input yields a nil
 // slice, meaning "watch all namespaces".
+// Params:
+//   - raw: the raw comma-separated namespace list.
+//
+// Returns: the parsed namespace list, or nil if raw is empty.
 func parseNamespaces(raw string) []string {
 	if raw == "" {
 		return nil
@@ -62,8 +81,15 @@ func parseNamespaces(raw string) []string {
 	return namespaces
 }
 
-// parseDuration parses a duration string, falling back to the given
+// parseDuration parses the POLL_INTERVAL value.
+//
+// Purpose: parses a duration string, falling back to the given
 // default if it's empty or invalid.
+// Params:
+//   - raw: the raw duration string (e.g. "15s").
+//   - fallback: the value to return if raw is empty or invalid.
+//
+// Returns: the parsed duration, or fallback.
 func parseDuration(raw string, fallback time.Duration) time.Duration {
 	d, err := time.ParseDuration(raw)
 	if err != nil {
