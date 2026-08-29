@@ -1,7 +1,6 @@
-// Package api scaffolds the Go agent's REST API: a chi router exposing
-// the endpoints the dashboard reads from. Handlers currently return
-// placeholder data -- see docs/architecture.md for the data they'll
-// eventually be backed by.
+// Package api exposes the Go agent's REST API: a chi router serving
+// the endpoints the dashboard reads from, backed by the Postgres
+// store (see docs/architecture.md for the underlying schema).
 package api
 
 import (
@@ -11,11 +10,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"podsentinel/internal/store"
 )
 
 // NewRouter builds the agent's HTTP handler tree.
-func NewRouter(logger *slog.Logger) http.Handler {
-	h := &handlers{logger: logger}
+func NewRouter(logger *slog.Logger, st *store.Store) http.Handler {
+	h := &handlers{logger: logger, store: st}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
