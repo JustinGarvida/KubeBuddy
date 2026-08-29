@@ -1936,11 +1936,14 @@ Tracked as follow-up work, not yet implemented:
 - Deploying the agent itself into the local KIND cluster (RBAC ServiceAccount/ClusterRole for pod + `metrics.k8s.io` access, a Deployment manifest) — today it runs on the host against KIND via kubeconfig.
 ```
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Commit (two commits — code, then docs)**
 
 ```bash
-git add go/internal/api/handlers.go go/internal/api/router.go go/internal/api/handlers_test.go docs/kube-agent.md
+git add go/internal/api/handlers.go go/internal/api/router.go go/internal/api/handlers_test.go
 git commit -m "feat(go-agent): serve REST API from the postgres store"
+
+git add docs/kube-agent.md
+git commit -m "docs(go-agent): document real ingestion path in kube-agent.md"
 ```
 
 ---
@@ -2229,11 +2232,14 @@ running (see [`infra/kind.md`](infra/kind.md) and
 of `go test ./...` and is not CI-portable as written.
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit (two commits — test, then docs)**
 
 ```bash
-git add go/internal/integration/agent_test.go docs/kube-agent.md
+git add go/internal/integration/agent_test.go
 git commit -m "test(go-agent): add kind+compose integration test for the ingestion path"
+
+git add docs/kube-agent.md
+git commit -m "docs(go-agent): document how to run the integration test"
 ```
 
 ---
