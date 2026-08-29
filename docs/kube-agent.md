@@ -35,9 +35,16 @@ export the variables or use a tool like `direnv`).
 
 ## Run locally
 
+Prerequisite: both the `kind-podsentinel` cluster (reachable via your
+current kubeconfig context — see [`infra/kind.md`](infra/kind.md)) and
+the docker-compose Postgres/TimescaleDB (see
+[`infra/docker-compose.md`](infra/docker-compose.md)) need to already
+be running. `cmd/agent` exits immediately (`os.Exit(1)`) if it can't
+build Kubernetes clients or open the Postgres connection.
+
 ```bash
 cd go
-go run ./cmd/agent
+POSTGRES_DSN='postgres://postgres:postgres@localhost:5432/podsentinel?sslmode=disable' go run ./cmd/agent
 ```
 
 Or build a binary:
@@ -45,15 +52,20 @@ Or build a binary:
 ```bash
 cd go
 go build -o bin/agent ./cmd/agent
-PORT=8080 LOG_LEVEL=debug ./bin/agent
+POSTGRES_DSN='postgres://postgres:postgres@localhost:5432/podsentinel?sslmode=disable' PORT=8080 LOG_LEVEL=debug ./bin/agent
 ```
 
 ## Run via Docker
 
+Same prerequisites as above (KIND cluster + docker-compose Postgres
+running). In-container Kubernetes access additionally needs either
+running the container in-cluster or mounting a kubeconfig — not covered
+here.
+
 ```bash
 cd go
 docker build -t podsentinel-go-agent .
-docker run --rm -p 8080:8080 -e LOG_LEVEL=debug podsentinel-go-agent
+docker run --rm -p 8080:8080 -e LOG_LEVEL=debug -e POSTGRES_DSN='postgres://postgres:postgres@host.docker.internal:5432/podsentinel?sslmode=disable' podsentinel-go-agent
 ```
 
 ## Verify
