@@ -10,8 +10,9 @@ RabbitMQ pub/sub are follow-up work (see "Next steps" below).
 
 ## Prerequisites
 
-- [Go](https://go.dev/doc/install) 1.23+ (the module's `go.mod` pins
-  `go 1.23.0`; with `GOTOOLCHAIN=auto`, the default, `go build`/`go
+- [Go](https://go.dev/doc/install) 1.26+ (the module's `go.mod` pins
+  `go 1.26.0` — raised from `1.23.0` by `k8s.io/client-go`'s minimum
+  Go version; with `GOTOOLCHAIN=auto`, the default, `go build`/`go
   run` download it automatically if your local toolchain is older)
 - [Docker](https://docs.docker.com/get-docker/), if building/running the container image
 
