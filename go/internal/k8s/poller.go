@@ -24,8 +24,6 @@ type Poller struct {
 	Now func() time.Time
 }
 
-// NewPoller builds a Poller with real clientsets and time.Now.
-//
 // Purpose: constructs a Poller ready to run against a real cluster.
 // Params:
 //   - clients: the Kubernetes clientsets to poll.
@@ -42,11 +40,8 @@ func NewPoller(clients *Clients, namespaces []string, logger *slog.Logger) *Poll
 	}
 }
 
-// Poll runs one polling pass across the configured namespaces.
-//
-// Purpose: lists pods and pod metrics across the configured
-// namespaces and returns the joined samples. A list failure for one
-// namespace is logged and skipped rather than failing the whole poll.
+// Purpose: lists pods and pod metrics per namespace and returns
+// the joined samples; a failed namespace is logged and skipped.
 // Params:
 //   - ctx: propagated to every Kubernetes API list call.
 //

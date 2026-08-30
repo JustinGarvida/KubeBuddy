@@ -69,8 +69,6 @@ type Store struct {
 	pool *pgxpool.Pool
 }
 
-// Open connects to the store.
-//
 // Purpose: connects to Postgres and applies pending schema
 // migrations.
 // Params:
@@ -92,8 +90,6 @@ func Open(ctx context.Context, dsn string) (*Store, error) {
 	return &Store{pool: pool}, nil
 }
 
-// Close releases the underlying connection pool.
-//
 // Purpose: shuts down the Postgres connection pool.
 // Params: none.
 // Returns: nothing.
@@ -101,8 +97,6 @@ func (s *Store) Close() {
 	s.pool.Close()
 }
 
-// InsertPodMetric records one pod's sample for a poll cycle.
-//
 // Purpose: writes a single row to pod_metrics.
 // Params:
 //   - ctx: used for the insert.
@@ -120,12 +114,8 @@ func (s *Store) InsertPodMetric(ctx context.Context, row PodMetricRow) error {
 	return nil
 }
 
-// ListPods returns the current pod list for the dashboard.
-//
-// Purpose: returns the latest known row for every pod that has
-// reported a metric within the last hour. Pods deleted from the
-// cluster longer ago than that age out of the list rather than
-// lingering forever at their last-known status.
+// Purpose: returns the latest known row for every pod with a
+// metric in the last hour; older-deleted pods age out of the list.
 // Params:
 //   - ctx: used for the query.
 //
@@ -155,8 +145,6 @@ func (s *Store) ListPods(ctx context.Context) ([]PodSummary, error) {
 	return summaries, rows.Err()
 }
 
-// GetPodMetrics returns one pod's recent metric history.
-//
 // Purpose: returns a pod's metric samples from the last hour, oldest
 // first.
 // Params:
@@ -189,11 +177,8 @@ func (s *Store) GetPodMetrics(ctx context.Context, namespace, pod string) ([]Pod
 	return samples, rows.Err()
 }
 
-// ListAnomalies returns one pod's anomaly history.
-//
-// Purpose: returns a pod's anomaly history, most recent first. It
-// returns an empty slice (not an error, and not nil) until the Python
-// anomaly detector exists and starts writing to the anomalies table.
+// Purpose: returns a pod's anomaly history, most recent first; an
+// empty (not nil) slice until the Python detector writes to it.
 // Params:
 //   - ctx: used for the query.
 //   - namespace: the pod's namespace.

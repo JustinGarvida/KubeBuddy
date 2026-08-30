@@ -22,11 +22,8 @@ type Clients struct {
 	Metrics metricsv.Interface
 }
 
-// BuildClients constructs the agent's Kubernetes clientsets.
-//
 // Purpose: builds Clients using in-cluster credentials if available,
-// falling back to the local kubeconfig (KUBECONFIG, or
-// ~/.kube/config) for development against a cluster like KIND.
+// falling back to the local kubeconfig for development (e.g. KIND).
 // Params: none.
 // Returns: the constructed Clients, or an error if no credentials
 // could be found or either clientset failed to build.
@@ -49,11 +46,8 @@ func BuildClients() (*Clients, error) {
 	return &Clients{Core: core, Metrics: metrics}, nil
 }
 
-// buildRestConfig resolves a *rest.Config with a fallback ordering.
-//
-// Purpose: tries inCluster first, falling back to outOfCluster. Both
-// loaders are injected so the fallback ordering can be unit tested
-// without real cluster credentials or a kubeconfig file.
+// Purpose: tries inCluster first, then outOfCluster; both are
+// injected so the ordering can be unit tested without real credentials.
 // Params:
 //   - inCluster: loader tried first (e.g. rest.InClusterConfig).
 //   - outOfCluster: loader tried if inCluster fails (e.g. kubeconfig).
@@ -74,8 +68,6 @@ func buildRestConfig(inCluster, outOfCluster func() (*rest.Config, error)) (*res
 	return cfg, nil
 }
 
-// loadKubeconfig builds a *rest.Config from a local kubeconfig file.
-//
 // Purpose: loads a *rest.Config from KUBECONFIG, or ~/.kube/config
 // if KUBECONFIG is unset.
 // Params: none.

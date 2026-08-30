@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-// New builds the agent's structured logger.
-//
 // Purpose: builds a JSON slog.Logger writing to stdout at the given
 // level. Unrecognized levels fall back to info.
 // Params:
@@ -23,8 +21,6 @@ func New(level string) *slog.Logger {
 	return slog.New(handler)
 }
 
-// parseLevel maps a level name to a slog.Level.
-//
 // Purpose: converts the configured log-level string into the
 // slog.Level New needs.
 // Params:

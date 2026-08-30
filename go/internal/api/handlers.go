@@ -19,8 +19,6 @@ type handlers struct {
 	store *store.Store
 }
 
-// writeJSON encodes an HTTP JSON response.
-//
 // Purpose: writes body to w as JSON with the given HTTP status code.
 // Params:
 //   - w: the response writer to write the status and body to.
@@ -35,8 +33,6 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 
-// health handles GET /health.
-//
 // Purpose: a liveness check for the agent.
 // Params:
 //   - w: the response writer.
@@ -47,8 +43,6 @@ func (h *handlers) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// listPods handles GET /api/v1/pods.
-//
 // Purpose: returns the latest known summary for every pod that has
 // reported a metric within the last hour.
 // Params:
@@ -77,8 +71,6 @@ func (h *handlers) listPods(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, summaries)
 }
 
-// getPod handles GET /api/v1/pods/{namespace}/{pod}.
-//
 // Purpose: returns the pod's identity/status (from its most recent
 // metric row) plus its last hour of CPU/memory samples, oldest first.
 // Params:
@@ -118,12 +110,8 @@ func (h *handlers) getPod(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, detail)
 }
 
-// listPodAnomalies handles GET /api/v1/pods/{namespace}/{pod}/anomalies.
-//
-// Purpose: returns the pod's anomaly history, most recent first. It
-// returns an empty array (never null) when there are no anomalies —
-// including today, before the Python anomaly detector exists to write
-// any.
+// Purpose: returns the pod's anomaly history, most recent first;
+// empty (never null) until the Python anomaly detector exists.
 // Params:
 //   - w: the response writer.
 //   - r: the incoming request; "namespace" and "pod" are read from

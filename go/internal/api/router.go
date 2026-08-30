@@ -14,8 +14,6 @@ import (
 	"podsentinel/internal/store"
 )
 
-// NewRouter builds the agent's HTTP handler tree.
-//
 // Purpose: wires up the chi router, middleware, and route table for
 // the REST API the dashboard reads from.
 // Params:
@@ -42,8 +40,6 @@ func NewRouter(logger *slog.Logger, st *store.Store) http.Handler {
 	return r
 }
 
-// requestLogger builds a logging middleware.
-//
 // Purpose: logs each request's method, path, status, and duration
 // through the agent's structured logger.
 // Params:

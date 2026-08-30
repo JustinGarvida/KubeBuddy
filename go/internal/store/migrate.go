@@ -18,8 +18,6 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Migrate applies the store's schema migrations.
-//
 // Purpose: applies all pending schema migrations. It's safe to call
 // on every agent startup — already-applied migrations are no-ops.
 // Params:

@@ -21,11 +21,8 @@ import (
 	"podsentinel/internal/store"
 )
 
-// main is the agent's entrypoint.
-//
-// Purpose: loads configuration, builds the Kubernetes and Postgres
-// dependencies, starts the background poll loop and the HTTP server,
-// and blocks until a SIGINT/SIGTERM triggers a graceful shutdown.
+// Purpose: loads configuration and dependencies, starts polling and
+// the HTTP server, and blocks until a shutdown signal.
 // Params: none.
 // Returns: nothing; exits the process via os.Exit(1) on startup or
 // shutdown failure.
@@ -80,8 +77,6 @@ func main() {
 	logger.Info("shutdown complete")
 }
 
-// runPollLoop drives the agent's background ingestion loop.
-//
 // Purpose: runs one poll-and-persist cycle immediately, then again on
 // every tick of interval, until ctx is cancelled.
 // Params:

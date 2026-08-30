@@ -32,16 +32,8 @@ type PodSample struct {
 	Timestamp time.Time
 }
 
-// joinPodsAndMetrics joins pod identity/status with resource usage.
-//
-// Purpose: joins pod identity/status (from the core API) with
-// resource usage (from the metrics API) by namespace/name. A pod with
-// no matching metrics entry — e.g. Pending, CrashLoopBackOff, Evicted,
-// Failed, or a completed Job pod, all of which metrics-server never
-// reports on — still gets a PodSample with CPU/Memory zeroed, since
-// its status/restart count come from the core API and are always
-// available regardless of metrics. This is logged at Debug: it's an
-// expected, routine case, not a fault.
+// Purpose: joins pod identity/status with resource usage; a pod
+// with no metrics entry gets a zeroed sample (logged at Debug).
 // Params:
 //   - pods: the core API's pod list for the polled namespace(s).
 //   - metrics: the metrics API's pod metrics list for the same scope.

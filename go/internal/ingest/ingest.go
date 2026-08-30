@@ -22,12 +22,8 @@ type Store interface {
 	InsertPodMetric(ctx context.Context, row store.PodMetricRow) error
 }
 
-// Run executes one poll-and-persist cycle.
-//
-// Purpose: polls once and persists every sample it gets back. A
-// failed insert for one pod is logged and skipped, not fatal to the
-// rest of the cycle — matches the fault isolation used for polling
-// itself.
+// Purpose: polls once and persists every sample; a failed insert is
+// logged and skipped, not fatal — matches polling's fault isolation.
 // Params:
 //   - ctx: propagated to the poll call and every insert.
 //   - poller: source of pod samples for this cycle.

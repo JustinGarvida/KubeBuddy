@@ -26,8 +26,6 @@ type Config struct {
 	PollInterval time.Duration
 }
 
-// Load builds the agent's configuration.
-//
 // Purpose: reads configuration from environment variables, falling
 // back to defaults for anything unset.
 // Params: none.
@@ -42,8 +40,6 @@ func Load() Config {
 	}
 }
 
-// getEnv reads a single environment variable with a fallback.
-//
 // Purpose: returns the named environment variable's value, or
 // fallback if it's unset or empty.
 // Params:
@@ -58,11 +54,8 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// parseNamespaces parses the WATCH_NAMESPACES value.
-//
 // Purpose: splits a comma-separated namespace list, trimming
-// whitespace and dropping empty entries. An empty input yields a nil
-// slice, meaning "watch all namespaces".
+// whitespace and dropping empty entries; nil means watch all.
 // Params:
 //   - raw: the raw comma-separated namespace list.
 //
@@ -81,8 +74,6 @@ func parseNamespaces(raw string) []string {
 	return namespaces
 }
 
-// parseDuration parses the POLL_INTERVAL value.
-//
 // Purpose: parses a duration string, falling back to the given
 // default if it's empty or invalid.
 // Params:
