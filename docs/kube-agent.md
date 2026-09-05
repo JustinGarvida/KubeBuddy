@@ -4,14 +4,17 @@ Guide for configuring and running the Go agent (`go/`) locally. See
 [`architecture.md`](architecture.md#go-agent) for its role in the
 overall system.
 
-**Current stage**: scaffold only — REST API endpoints return
-placeholder data. Kubernetes Metrics API polling, Postgres writes, and
-RabbitMQ pub/sub are follow-up work (see "Next steps" below).
+**Current stage**: core ingestion path implemented — the agent polls
+Kubernetes (pod status/restarts + CPU/memory usage) on an interval and
+writes every sample to Postgres/TimescaleDB; REST API endpoints read
+real data. RabbitMQ pub/sub and Python anomaly detection are follow-up
+work (see "Next steps" below).
 
 ## Prerequisites
 
-- [Go](https://go.dev/doc/install) 1.23+ (the module's `go.mod` pins
-  `go 1.23.0`; with `GOTOOLCHAIN=auto`, the default, `go build`/`go
+- [Go](https://go.dev/doc/install) 1.26+ (the module's `go.mod` pins
+  `go 1.26.0` — raised from `1.23.0` by `k8s.io/client-go`'s minimum
+  Go version; with `GOTOOLCHAIN=auto`, the default, `go build`/`go
   run` download it automatically if your local toolchain is older)
 - [Docker](https://docs.docker.com/get-docker/), if building/running the container image
 
@@ -26,12 +29,22 @@ export the variables or use a tool like `direnv`).
 |-------------|---------|-----------------------------------------------|
 | `PORT`      | `8080`  | TCP port the REST API listens on               |
 | `LOG_LEVEL` | `info`  | Minimum log level: `debug`, `info`, `warn`, `error` |
+| `POSTGRES_DSN` | *(none — required)* | Postgres/TimescaleDB connection string |
+| `WATCH_NAMESPACES` | *(empty = all namespaces)* | Comma-separated namespace allow-list |
+| `POLL_INTERVAL` | `15s` | How often to poll the Kubernetes APIs |
 
 ## Run locally
 
+Prerequisite: both the `kind-podsentinel` cluster (reachable via your
+current kubeconfig context — see [`infra/kind.md`](infra/kind.md)) and
+the docker-compose Postgres/TimescaleDB (see
+[`infra/docker-compose.md`](infra/docker-compose.md)) need to already
+be running. `cmd/agent` exits immediately (`os.Exit(1)`) if it can't
+build Kubernetes clients or open the Postgres connection.
+
 ```bash
 cd go
-go run ./cmd/agent
+POSTGRES_DSN='postgres://postgres:postgres@localhost:5432/podsentinel?sslmode=disable' go run ./cmd/agent
 ```
 
 Or build a binary:
@@ -39,15 +52,20 @@ Or build a binary:
 ```bash
 cd go
 go build -o bin/agent ./cmd/agent
-PORT=8080 LOG_LEVEL=debug ./bin/agent
+POSTGRES_DSN='postgres://postgres:postgres@localhost:5432/podsentinel?sslmode=disable' PORT=8080 LOG_LEVEL=debug ./bin/agent
 ```
 
 ## Run via Docker
 
+Same prerequisites as above (KIND cluster + docker-compose Postgres
+running). In-container Kubernetes access additionally needs either
+running the container in-cluster or mounting a kubeconfig — not covered
+here.
+
 ```bash
 cd go
 docker build -t podsentinel-go-agent .
-docker run --rm -p 8080:8080 -e LOG_LEVEL=debug podsentinel-go-agent
+docker run --rm -p 8080:8080 -e LOG_LEVEL=debug -e POSTGRES_DSN='postgres://postgres:postgres@host.docker.internal:5432/podsentinel?sslmode=disable' podsentinel-go-agent
 ```
 
 ## Verify
@@ -59,6 +77,17 @@ curl localhost:8080/api/v1/pods/default/example-pod
 curl localhost:8080/api/v1/pods/default/example-pod/anomalies
 ```
 
+## Integration test
+
+`go test -tags=integration ./internal/integration/...` exercises the
+full ingestion path against real infrastructure: it creates a
+namespace and pod in the `kind-podsentinel` cluster, runs poll cycles
+against `infra/docker-compose.yml`'s TimescaleDB until the pod shows up
+via `store.ListPods`, then cleans up. Requires both to already be
+running (see [`infra/kind.md`](infra/kind.md) and
+[`infra/docker-compose.md`](infra/docker-compose.md)) — it is not part
+of `go test ./...` and is not CI-portable as written.
+
 ## Endpoint reference
 
 | Method | Path                                          | Description                              |
@@ -68,8 +97,9 @@ curl localhost:8080/api/v1/pods/default/example-pod/anomalies
 | GET    | `/api/v1/pods/{namespace}/{pod}`                | Pod detail with recent metrics            |
 | GET    | `/api/v1/pods/{namespace}/{pod}/anomalies`      | Anomaly history for a pod                 |
 
-All responses are placeholder data today — response shapes are defined
-in `go/internal/models`.
+Response shapes are defined in `go/internal/models`; `/api/v1/pods/{namespace}/{pod}/anomalies`
+returns an empty array until the Python anomaly detector (a later
+build-order step) exists to write to it.
 
 ## Packages
 
@@ -78,12 +108,14 @@ in `go/internal/models`.
 - `internal/logging` — `log/slog` JSON logger setup.
 - `internal/api` — chi router, middleware, and HTTP handlers.
 - `internal/models` — API response types, mirroring the eventual `pod_metrics`/`anomalies` Postgres schema.
+- `internal/k8s` — builds Kubernetes clients (in-cluster or kubeconfig fallback), polls pods + metrics, and joins them per cycle.
+- `internal/store` — Postgres/TimescaleDB schema migrations and CRUD queries.
+- `internal/ingest` — orchestrates one poll-and-persist cycle, with per-pod fault isolation.
 
 ## Next steps
 
 Tracked as follow-up work, not yet implemented:
 
-- Kubernetes Metrics API polling via `client-go`.
-- Postgres/TimescaleDB connection and writes.
 - RabbitMQ publishing (`metrics.raw`) and consuming (`anomalies.detected`).
-- Deploying into the local KIND cluster (see [`infra/kind.md`](infra/kind.md)) once the agent has something real to poll and `metrics-server` is installed.
+- Python anomaly detection, which will populate the (currently empty) `anomalies` table.
+- Deploying the agent itself into the local KIND cluster (RBAC ServiceAccount/ClusterRole for pod + `metrics.k8s.io` access, a Deployment manifest) — today it runs on the host against KIND via kubeconfig.

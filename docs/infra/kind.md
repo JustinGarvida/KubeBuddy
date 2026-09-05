@@ -28,6 +28,39 @@ kubectl get nodes
 
 All nodes should show `Ready`.
 
+## Install metrics-server
+
+The Go agent's poller reads pod CPU/memory from the `metrics.k8s.io`
+API, which KIND doesn't provide out of the box — it needs
+[metrics-server](https://github.com/kubernetes-sigs/metrics-server)
+installed.
+
+```bash
+kubectl --context kind-podsentinel apply -f infra/kind/metrics-server.yaml
+```
+
+[`infra/kind/metrics-server.yaml`](../../infra/kind/metrics-server.yaml)
+is the upstream `components.yaml` for a pinned metrics-server release
+(`v0.9.0`, matching this repo's convention of pinning infra image
+tags), with one change: the container args add
+`--kubelet-insecure-tls`. KIND's kubelet serving certificates aren't
+signed for the hostnames/IPs metrics-server validates against by
+default, so without that flag the `metrics-server` Deployment never
+reaches `Ready` on a KIND cluster.
+
+## Verify metrics-server
+
+```bash
+kubectl --context kind-podsentinel -n kube-system rollout status deployment/metrics-server
+kubectl --context kind-podsentinel top nodes
+kubectl --context kind-podsentinel top pods -A
+```
+
+The rollout should report `successfully rolled out`, and both `top`
+commands should print CPU/memory numbers once metrics-server has
+completed its first scrape (can take up to ~1 minute after the
+Deployment becomes ready).
+
 ## Tear down
 
 ```bash
@@ -36,4 +69,6 @@ kind delete cluster --name podsentinel
 
 ## Next steps
 
-`metrics-server` isn't installed by this config yet — tracked as a follow-up (see issue #6).
+Schema, RabbitMQ topology, and Postgres/`client-go` wiring for the Go
+agent's ingestion path are tracked separately — see
+[`docs/kube-agent.md`](../kube-agent.md).

@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS anomalies;
+DROP TABLE IF EXISTS pod_metrics;
